@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="box">
+        <attr name="checkedImgInside" format="reference"></attr>
+        <attr name="uncheckedImgInside" format="reference"></attr>
+        <attr name="normalBackgroundColor" format="reference|color"></attr>
+        <attr name="checkedColor" format="reference|color"></attr>
+        <attr name="uncheckedColor" format="reference|color"></attr>
+        <attr name="imgMargin" format="dimension"></attr>
+        <attr name="effectDuration" format="integer"></attr>
+    </declare-styleable>
+</resources>
