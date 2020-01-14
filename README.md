@@ -1,8 +1,6 @@
 # BlinkCheckBox
-blinkcheckbox v1.0
-====
-这是一个简洁的三色CheckBox(眨眼的效果)
----
+这是一个简洁的三色CheckBox(像眨眼睛)
+===
 ![Image text](https://github.com/carendule/BlinkCheckBox/blob/master/app/image/untitled.gif)
 你可以只设定两种颜色和两个图片(box1)
 ```XML
