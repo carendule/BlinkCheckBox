@@ -1,15 +1,22 @@
 package com.caren.blinkcheckbox;
 
+import android.animation.Animator;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
 import android.annotation.TargetApi;
 import android.content.Context;
+import android.content.res.ColorStateList;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Matrix;
 import android.graphics.Paint;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.util.AttributeSet;
@@ -19,6 +26,10 @@ import android.view.View;
 import android.widget.Checkable;
 
 import androidx.annotation.Nullable;
+import androidx.core.graphics.drawable.DrawableCompat;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class BlinkCheckBox extends View implements Checkable {
 
@@ -48,7 +59,9 @@ public class BlinkCheckBox extends View implements Checkable {
 
     private boolean isChecked = false;
 
-    private Drawable checkedImg,uncheckedImg = null;
+    private Drawable checkedImg,uncheckedImg,normalBackgroundImg = null;
+
+    private Drawable checkedBackground,uncheckedBackground = null;
 
     private int normalBackgroundColor = Color.WHITE;
 
@@ -56,9 +69,9 @@ public class BlinkCheckBox extends View implements Checkable {
 
     private int uncheckedColor = Color.DKGRAY;
 
-    private int imgMargin = 0;
+    private int imgMarginLeft,imgMarginRight,imgMarginTop,imgMarginBottom = 0;
 
-    private int width ,height;
+    private int width ,height = 0;
 
     private float defaultRadis = 0;
 
@@ -66,7 +79,9 @@ public class BlinkCheckBox extends View implements Checkable {
 
     private float checkedRadis = 0;
 
-    private int effectDuration = 500;
+    private int effectDuration,blinkDuration = 500;
+
+    private int effect = -1;
 
     private Paint paint,paintUncheck,paintCheck;
 
@@ -82,18 +97,40 @@ public class BlinkCheckBox extends View implements Checkable {
 
         uncheckedImg = optDrawable(typedArray, R.styleable.box_uncheckedImgInside,null);
 
+        normalBackgroundImg = optDrawable(typedArray, R.styleable.box_normalBackgroundImg,null);
+
+        checkedBackground = optDrawable(typedArray, R.styleable.box_normalBackgroundImg,null);
+
+        uncheckedBackground = optDrawable(typedArray, R.styleable.box_normalBackgroundImg,null);
+
         normalBackgroundColor = optColor(typedArray, R.styleable.box_normalBackgroundColor,normalBackgroundColor);
 
         checkedColor =optColor(typedArray, R.styleable.box_checkedColor,checkedColor);
 
         uncheckedColor = optColor(typedArray, R.styleable.box_uncheckedColor,uncheckedColor);
 
-        imgMargin = optPixelSize(typedArray, R.styleable.box_imgMargin,0);
+        imgMarginTop = optPixelSize(typedArray, R.styleable.box_imgMarginTop,0);
+
+        imgMarginLeft = optPixelSize(typedArray, R.styleable.box_imgMarginLeft,0);
+
+        imgMarginRight = optPixelSize(typedArray, R.styleable.box_imgMarginRight,0);
+
+        imgMarginBottom = optPixelSize(typedArray, R.styleable.box_imgMarginBottom,0);
+
+        effect = optInt(typedArray, R.styleable.box_effect,-1);
 
         effectDuration = optInt(typedArray, R.styleable.box_effectDuration,effectDuration);
 
+        blinkDuration = optInt(typedArray, R.styleable.box_blinkDuration,blinkDuration);
+
         if(typedArray != null){
             typedArray.recycle();
+        }
+
+        if(normalBackgroundImg != null){
+            normalBackgroundImg = getDrawable(normalBackgroundImg,normalBackgroundColor);
+            checkedBackground = getDrawable(checkedBackground,checkedColor);
+            uncheckedBackground = getDrawable(uncheckedBackground,uncheckedColor);
         }
 
         paint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -144,31 +181,58 @@ public class BlinkCheckBox extends View implements Checkable {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
-
         //绘制底色
         paint.setStrokeWidth(dp2px(10));
         paint.setStyle(Paint.Style.FILL);
         paint.setColor(normalBackgroundColor);
-        canvas.drawCircle(defaultRadis,defaultRadis,defaultRadis,paint);
+        if(normalBackgroundImg == null){
+            canvas.drawCircle(defaultRadis,defaultRadis,defaultRadis,paint);
+        }else{
+            normalBackgroundImg.setBounds(0,0,width,height);
+            normalBackgroundImg.draw(canvas);
+        }
+
 
         //绘制未选中
         paintUncheck.setStyle(Paint.Style.FILL);
         paintUncheck.setColor(uncheckedColor);
-        canvas.drawCircle(defaultRadis,defaultRadis,unCheckedRadis,paintUncheck);
+        if(normalBackgroundImg == null){
+            canvas.drawCircle(defaultRadis,defaultRadis,unCheckedRadis,paintUncheck);
+        }else{
+            float ratio = 1-(unCheckedRadis/defaultRadis);
+            int left = (int) (ratio*(width/2));
+            int top = (int) (ratio*(height/2));
+            int right = width-left;
+            int bottom = height-top;
+            uncheckedBackground.setBounds(left,top,right,bottom);
+            uncheckedBackground.draw(canvas);
+        }
+
 
         //绘制选中
         paintCheck.setStyle(Paint.Style.FILL);
         paintCheck.setColor(checkedColor);
-        canvas.drawCircle(defaultRadis,defaultRadis,checkedRadis,paintCheck);
+        if(normalBackgroundImg == null){
+            canvas.drawCircle(defaultRadis,defaultRadis,checkedRadis,paintCheck);
+        }else{
+            float ratio = 1-(checkedRadis/defaultRadis);
+            int left = (int) (ratio*(width/2));
+            int top = (int) (ratio*(height/2));
+            int right = width-left;
+            int bottom = height-top;
+            checkedBackground.setBounds(left,top,right,bottom);
+            checkedBackground.draw(canvas);
+        }
+
 
         if(checkedImg != null){
-            checkedImg.setBounds(imgMargin,imgMargin,width-imgMargin,height-imgMargin);
+            checkedImg.setBounds(imgMarginLeft,imgMarginTop,width-imgMarginRight,height-imgMarginBottom);
             checkedImg.setAlpha(checkedImgAlpha);
             checkedImg.draw(canvas);
         }
 
         if(uncheckedImg != null){
-            uncheckedImg.setBounds(imgMargin,imgMargin,width-imgMargin,height-imgMargin);
+            uncheckedImg.setBounds(imgMarginLeft,imgMarginTop,width-imgMarginRight,height-imgMarginBottom);
             uncheckedImg.setAlpha(unCheckedImgAlpha);
             uncheckedImg.draw(canvas);
         }
@@ -193,10 +257,14 @@ public class BlinkCheckBox extends View implements Checkable {
     public void toggle() {
         if(isChecked){
             transferToUncheck(true);
-            onCheckedChangeListener.onCheckedChanged(this,false);
+            if(onCheckedChangeListener != null){
+                onCheckedChangeListener.onCheckedChanged(this,false);
+            }
         }else{
             transferToCheck(true);
-            onCheckedChangeListener.onCheckedChanged(this,true);
+            if(onCheckedChangeListener != null){
+                onCheckedChangeListener.onCheckedChanged(this,true);
+            }
         }
     }
 
@@ -239,11 +307,12 @@ public class BlinkCheckBox extends View implements Checkable {
             return;
         }
         valueAnimator = ValueAnimator.ofFloat(0f, 1f);
-        valueAnimator.setDuration(effectDuration);
+        valueAnimator.setDuration(blinkDuration);
         valueAnimator.setRepeatCount(0);
         valueAnimator.addUpdateListener(animatorUpdateListener);
         lastFraction = 0;
         valueAnimator.start();
+        playCheckAnime();
     }
 
     private void transferToUncheck(boolean animate){
@@ -252,11 +321,81 @@ public class BlinkCheckBox extends View implements Checkable {
             return;
         }
         valueAnimator = ValueAnimator.ofFloat(0f, 1f);
-        valueAnimator.setDuration(effectDuration);
+        valueAnimator.setDuration(blinkDuration);
         valueAnimator.setRepeatCount(0);
         valueAnimator.addUpdateListener(animatorUpdateListener);
         lastFraction = 0;
         valueAnimator.start();
+        playUncheckAnime();
+    }
+
+    private void playCheckAnime(){
+        switch (effect){
+            case 0:playFlipVer();break;
+            case 1:playFlipHor(true);break;
+            case 2:playFlipSur(true);break;
+            case 3:playBounce();break;
+        }
+    }
+
+    private void playUncheckAnime(){
+        switch (effect){
+            case 0:playFlipVer();break;
+            case 1:playFlipHor(false);break;
+            case 2:playFlipSur(false);break;
+            case 3:playBounce();break;
+        }
+    }
+
+    private void playFlipVer(){
+            ObjectAnimator.ofFloat(this, "rotationX", 0, 360)
+                    .setDuration(effectDuration).start();
+    }
+
+    private void playFlipHor(boolean isChecked){
+        if(isChecked){
+            ObjectAnimator.ofFloat(this, "rotationY", 0, 180)
+                    .setDuration(effectDuration).start();
+        }else{
+            ObjectAnimator.ofFloat(this, "rotationY", 180,0)
+                    .setDuration(effectDuration).start();
+        }
+
+    }
+
+    private void playFlipSur(boolean isChecked){
+        if(isChecked){
+            ObjectAnimator.ofFloat(this, "rotation", 0, 360)
+                    .setDuration(effectDuration).start();
+        }else{
+            ObjectAnimator.ofFloat(this, "rotation", 360,0)
+                    .setDuration(effectDuration).start();
+        }
+    }
+
+    private void playBounce(){
+        AnimatorSet allQueue = new AnimatorSet();
+        List<Animator> animatorList = new ArrayList<>();
+        for(float i = 1.3f ; i>1 ;i=i-0.1f){
+            AnimatorSet scaleDown = new AnimatorSet();
+            AnimatorSet scaleUp = new AnimatorSet();
+            scaleDown.playTogether(
+                    ObjectAnimator.ofFloat(this, "scaleX", 1f, i)
+                            .setDuration(effectDuration/6),
+                    ObjectAnimator.ofFloat(this, "scaleY", 1f, i)
+                            .setDuration(effectDuration/6)
+            );
+            scaleUp.playTogether(
+                    ObjectAnimator.ofFloat(this, "scaleX", i, 1f)
+                            .setDuration(effectDuration/6),
+                    ObjectAnimator.ofFloat(this, "scaleY", i, 1f)
+                            .setDuration(effectDuration/6)
+            );
+            animatorList.add(scaleDown);
+            animatorList.add(scaleUp);
+        }
+        allQueue.playSequentially(animatorList);
+        allQueue.start();
     }
 
     private ValueAnimator valueAnimator;
@@ -332,6 +471,40 @@ public class BlinkCheckBox extends View implements Checkable {
 
     private static int dp2pxInt(float dp){
         return (int) dp2px(dp);
+    }
+
+    private static Bitmap getBitmap(Drawable drawable,int color){
+        BitmapDrawable bd = (BitmapDrawable) drawable;
+        Bitmap bm = bd.getBitmap();
+        Bitmap outBitmap = Bitmap.createBitmap (bm.getWidth(),bm.getHeight(),bm.getConfig());
+        Canvas canvas = new Canvas(outBitmap);
+        Paint paint = new Paint();
+        paint.setColorFilter( new PorterDuffColorFilter(color, PorterDuff.Mode.SRC_IN)) ;
+        canvas.drawBitmap(bm , 0, 0, paint) ;
+        return outBitmap;
+    }
+
+    private Bitmap scaleBitmap(Bitmap origin, int newWidth, int newHeight) {
+        if (origin == null) {
+            return null;
+        }
+        int height = origin.getHeight();
+        int width = origin.getWidth();
+        float scaleWidth = ((float) newWidth) / width;
+        float scaleHeight = ((float) newHeight) / height;
+        Matrix matrix = new Matrix();
+        matrix.postScale(scaleWidth, scaleHeight);// 使用后乘
+        Bitmap newBM = Bitmap.createBitmap(origin, 0, 0, width, height, matrix, false);
+        if (!origin.isRecycled()) {
+            origin.recycle();
+        }
+        return newBM;
+    }
+
+    //更改指定色值
+    private static Drawable getDrawable(Drawable drawable,int beColor) {
+        DrawableCompat.setTintList(drawable, ColorStateList.valueOf(beColor));
+        return drawable;
     }
 
     private static int optInt(TypedArray typedArray,

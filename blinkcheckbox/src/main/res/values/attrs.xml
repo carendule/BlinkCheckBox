@@ -3,10 +3,21 @@
     <declare-styleable name="box">
         <attr name="checkedImgInside" format="reference"></attr>
         <attr name="uncheckedImgInside" format="reference"></attr>
+        <attr name="normalBackgroundImg" format="reference"></attr>
         <attr name="normalBackgroundColor" format="reference|color"></attr>
         <attr name="checkedColor" format="reference|color"></attr>
         <attr name="uncheckedColor" format="reference|color"></attr>
-        <attr name="imgMargin" format="dimension"></attr>
+        <attr name="imgMarginTop" format="dimension"></attr>
+        <attr name="imgMarginBottom" format="dimension"></attr>
+        <attr name="imgMarginLeft" format="dimension"></attr>
+        <attr name="imgMarginRight" format="dimension"></attr>
+        <attr name="blinkDuration" format="integer"></attr>
         <attr name="effectDuration" format="integer"></attr>
+        <attr name="effect">
+            <enum name="flipVer" value="0"/>
+            <enum name="flipHor" value="1"/>
+            <enum name="flipSur" value="2"/>
+            <enum name="bounce" value="3"/>
+        </attr>
     </declare-styleable>
 </resources>
